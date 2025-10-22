@@ -1,4 +1,6 @@
 import socket
+import re
+import math
 
 class Debug:
     def __init__(self, debug : bool = False, message: str = None):
@@ -36,6 +38,8 @@ class Socket:
         buffer_size = buffer_size or self.buffer_size
         Debug(self.debug, "[SOCKET] Reading {0} bytes of data...".format(buffer_size))
         return self.socket.recv(buffer_size)
+    def write(self, data):
+        self.socket.send(data)
     def __enter__(self):
         return self
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -46,11 +50,30 @@ debug = 1 # activate debugging
 buffer_size = 100
 data = b''
 with Socket(None, buffer_size, debug) as socket_obj: # will focus on the socket for interruption and closing
-    socket_obj.open(("some-host", 52002));
+    socket_obj.open(("challenge01.root-me.org", 52002));
 
     while True:
         message = socket_obj.read(buffer_size)
         data += message
         if len(message) < buffer_size: # no more data to read
             break;
-print(data)
+        
+    data = data.decode("utf-8")
+    print(data)
+    
+    matches = re.search(".*Calculate the square root of (?P<s1>\d*) and multiply by (?P<s2>\d*).*", data)
+    s1 = int(matches.group('s1'))
+    s2 = int(matches.group('s2'))
+    square_root_of_s1 = int(math.sqrt(s1))
+    res = square_root_of_s1 * s2
+    print(res.to_bytes(res.bit_length(), 'big'))
+    socket_obj.write(bytes(res))
+
+    while True:
+        message = socket_obj.read(buffer_size)
+        data += message
+        if len(message) < buffer_size: # no more data to read
+            break;
+        
+    data = data.decode("utf-8")
+    print(data)
