@@ -50,7 +50,7 @@ debug = 1 # activate debugging
 buffer_size = 100
 data = b''
 with Socket(None, buffer_size, debug) as socket_obj: # will focus on the socket for interruption and closing
-    socket_obj.open(("challenge01.root-me.org", 52002));
+    socket_obj.open(("xxxxxx", 52002));
 
     while True:
         message = socket_obj.read(buffer_size)
