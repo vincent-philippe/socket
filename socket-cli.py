@@ -21,7 +21,6 @@ class Socket:
         self.buffer_size = buffer_size or 100
         Debug(self.debug, "[SOCKET] {0}".format(self.buffer_size))
         Debug(self.debug, "[SOCKET] Initialize a new socket object.")
-
     def open(self, socket_cnx: tuple[str, int]):
         self.socket.connect(socket_cnx)
         Debug(self.debug, "[SOCKET] Connexion OPEN... Waiting for read...")
@@ -37,7 +36,9 @@ class Socket:
     def read(self, buffer_size : int = None):
         buffer_size = buffer_size or self.buffer_size
         Debug(self.debug, "[SOCKET] Reading {0} bytes of data...".format(buffer_size))
-        return self.socket.recv(buffer_size)
+        d = self.socket.recv(buffer_size)
+        Debug(self.debug, "[SOCKET-READ] {0}".format(d))
+        return d
     def write(self, data):
         self.socket.send(data)
     def __enter__(self):
@@ -46,34 +47,42 @@ class Socket:
         Debug(self.debug, "[SOCKET] Socket object exited.")
         self.close()
 
-debug = 1 # activate debugging
-buffer_size = 100
-data = b''
-with Socket(None, buffer_size, debug) as socket_obj: # will focus on the socket for interruption and closing
-    socket_obj.open(("xxxxxx", 52002));
-
+def get_server_data(socket_obj: socket.socket):
+    data = b''
     while True:
         message = socket_obj.read(buffer_size)
         data += message
         if len(message) < buffer_size: # no more data to read
-            break;
-        
-    data = data.decode("utf-8")
-    print(data)
-    
-    matches = re.search(".*Calculate the square root of (?P<s1>\d*) and multiply by (?P<s2>\d*).*", data)
+            break
+    return data
+
+def parse_and_compute_chal_solution(challenge):
+    # extract challenge part
+    matches = re.search(r".*Calculate the square root of (?P<s1>\d*) and multiply by (?P<s2>\d*).*", challenge.decode('UTF-8'))
     s1 = int(matches.group('s1'))
     s2 = int(matches.group('s2'))
-    square_root_of_s1 = int(math.sqrt(s1))
-    res = square_root_of_s1 * s2
-    print(res.to_bytes(res.bit_length(), 'big'))
-    socket_obj.write(bytes(res))
+    # proceed to compute parts as requested
+    square_root_of_s1 = math.sqrt(s1)
+    res = round(square_root_of_s1 * s2, 2)
+    
+    return res # return the result
 
-    while True:
-        message = socket_obj.read(buffer_size)
-        data += message
-        if len(message) < buffer_size: # no more data to read
-            break;
-        
-    data = data.decode("utf-8")
-    print(data)
+def send_challenge_solution(socket: socket.socket, solution):
+    print("[SOCKET] send solution")
+    solution = "{0}".format(solution)
+    solution = bytes(solution+"\n", 'UTF-8', 'strict')
+    # send solution through a new socket
+    print("[SOCKET-SEND] {0}".format(solution))
+    socket.write(solution)
+    socket.read(1024)
+    
+debug = 1 # activate debugging
+buffer_size = 1024
+with Socket(None, buffer_size, debug) as socket_obj:
+    socket_obj.open(("xxxxxxxxxxxxxx", 52002));
+    c = get_server_data(socket_obj) # request server (will send challenge first)
+    s = parse_and_compute_chal_solution(c)
+    send_challenge_solution(socket_obj, s) # send solution
+    flag = get_server_data(socket_obj)# get response
+    print(flag)
+print(flag)
