@@ -40,6 +40,7 @@ class Socket:
         Debug(self.debug, "[SOCKET-READ] {0}".format(d))
         return d
     def write(self, data):
+        data = bytes(data + '\n', 'UTF-8', 'strict') # add EOL to stop server listening for data
         self.socket.send(data)
     def __enter__(self):
         return self
@@ -68,21 +69,15 @@ def parse_and_compute_chal_solution(challenge):
     return res # return the result
 
 def send_challenge_solution(socket: socket.socket, solution):
-    print("[SOCKET] send solution")
     solution = "{0}".format(solution)
-    solution = bytes(solution+"\n", 'UTF-8', 'strict')
-    # send solution through a new socket
-    print("[SOCKET-SEND] {0}".format(solution))
     socket.write(solution)
-    socket.read(1024)
     
-debug = 1 # activate debugging
+debug = 0 # activate debugging
 buffer_size = 1024
 with Socket(None, buffer_size, debug) as socket_obj:
-    socket_obj.open(("xxxxxxxxxxxxxx", 52002));
+    socket_obj.open(("xxxxxxxxxxxxxxxx", 52002));
     c = get_server_data(socket_obj) # request server (will send challenge first)
     s = parse_and_compute_chal_solution(c)
     send_challenge_solution(socket_obj, s) # send solution
     flag = get_server_data(socket_obj)# get response
-    print(flag)
 print(flag)
